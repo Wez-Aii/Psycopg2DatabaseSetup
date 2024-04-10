@@ -12,7 +12,7 @@
         ]
       }
     },
-    "runArgs": ["--env-file", "/home/wezaii/Development/PreDevTesting/Psycopg2DatabaseSetup/.devcontainer/.env"],
+    // "runArgs": ["--env-file", "/home/wezaii/Development/PreDevTesting/Psycopg2DatabaseSetup/.devcontainer/.env"],
     "privileged": true,
     "workspaceFolder": "/workspace",
     // "workspaceMount": "source=${localEnv:USERPROFILE}\\TestingProject\\Psycopg2DatabaseSetup,target=/workspace,type=bind",
