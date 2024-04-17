@@ -1,4 +1,4 @@
-parent_id,name,desc,flag
+parent_id,row_name,row_desc,flag
 1,child1,a description,false
 1,child2,a description,true
 2,child3,a description,false

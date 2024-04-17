@@ -1,4 +1,4 @@
-id,name,desc,int_val,decimal_val,flag
+id,row_name,row_desc,int_val,decimal_val,flag
 1,ONE,just a desc,1000,100.00,true
 2,TWO,just a desc,2000,200.00,true
 3,THREE,just a desc,3000,300.00,false

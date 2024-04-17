@@ -3,6 +3,7 @@ import psycopg2
 import argparse
 import getpass
 import os
+import pwinput
 
 
 POSTGRES_DB_ADDRESS = os.getenv("POSTGRES_DB_ADDRESS", "localhost")
@@ -19,7 +20,8 @@ class Psycopg2Driver:
         self.host_addr = input("Enter host_addr (eg. localhost or 127.0.0.1): ")
         self.host_port = input("Enter host_port (eg. 5432): ")
         self.__username = input("Enter username: ")
-        self.__password = getpass.getpass("Enter password: ")
+        # self.__password = getpass.getpass("Enter password: ")
+        self.__password = pwinput.pwinput(prompt="Enter password: ", mask='*')
 
     def check_db_connection(self):
         while True:
@@ -96,14 +98,16 @@ class Psycopg2Driver:
             raise SystemExit(1)
         
     def select_action_to_continue(self):
-        print("Available actions :\n\t1) delete selected database\n\t2) execute sql file\n\t3) delete table\n\t4) exist program (enter any other key)")
-        _continue_action = input("Select the action suggested above by enter a number(1, 2, 3, 4): ")
+        print("Available actions :\n\t1) delete selected database\n\t2) execute sql file\n\t3) delete table\n\t4) insert test data\n\t5) exist program (enter any other key)")
+        _continue_action = input("Select the action suggested above by enter a number(1, 2, 3, 4, 5): ")
         if _continue_action == "1":
             self.delete_database(self.database_name)
         elif _continue_action == "2":
             self.execute_sql_file()
         elif _continue_action == "3":
             self.delete_table()
+        elif _continue_action == "4":
+            self.load_data_from_csv_files_folder()
         else:
             print("Program exiting...")
     
@@ -184,25 +188,35 @@ class Psycopg2Driver:
             for each in os.listdir(_csv_files_folder):
                 _temp_db_connection = self.connect()
                 _temp_db_connection.autocommit = True
+                _rows_data = []
+                _column_names = []
                 if each[-4:] == ".csv":
                     _table_name = each[:-4]
                     _file_path = f"{_csv_files_folder}/{each}"
-                    with open(_file_path, 'r') as _csvfile:
-                        dict_data = csv.DictReader(_csvfile)
-                    column_names_str = ','.join(list(dict_data.keys()))
+                    with open(_file_path, 'r', newline='') as _csvfile:
+                        _all_rows = csv.reader(_csvfile)
+                        _column_names = next(_all_rows)
+                        _rows_data = [_row for _row in _all_rows]
+                    _column_names_str = ','.join(_column_names)
+                    _placeholders_str = ','.join("%s" for each in _column_names)
                     _sql_script = f"""
-                            COPY {_table_name.lower()}({column_names_str}) FROM '{_file_path}' DELIMITER ',' CSV HEADER;
+                            INSERT INTO {_table_name.lower()}({_column_names_str}) VALUES ({_placeholders_str})
                         """
                     try:
                         with _temp_db_connection.cursor() as cur:
-                            cur.execute(_sql_script)
+                            # cur.execute(_sql_script)
+                            for _row in _rows_data:
+                                cur.execute(_sql_script, _row)
                         _temp_db_connection.close()
+                        print("csv file data inserts successfully")
                     except Exception as e:
                         _temp_db_connection.close()
                         print(f"Failed to execute {each}.")
                         print(f"(f) load_data_from_csv_files_folder - An error occured: {e}")
-
-                    
+            if len(os.listdir(_csv_files_folder)) == 0:
+                print("The folder is empty.")
+        else:
+            print("The input path is not a folder.")                    
         self.select_action_to_continue()
     
     def delete_table(self):
@@ -223,7 +237,8 @@ class Psycopg2Driver:
 
 def get_user_credentials():
     username = input("Enter username: ")
-    password = getpass.getpass("Enter password: ")
+    # password = getpass.getpass("Enter password: ")
+    password = pwinput.pwinput(prompt="Enter password: ", mask='*')
     return username, password
 
 if __name__=="__main__":
