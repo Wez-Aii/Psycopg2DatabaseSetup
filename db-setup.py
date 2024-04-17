@@ -4,6 +4,7 @@ import argparse
 import getpass
 import os
 import pwinput
+import pandas
 
 
 POSTGRES_DB_ADDRESS = os.getenv("POSTGRES_DB_ADDRESS", "localhost")
@@ -98,8 +99,8 @@ class Psycopg2Driver:
             raise SystemExit(1)
         
     def select_action_to_continue(self):
-        print("Available actions :\n\t1) delete selected database\n\t2) execute sql file\n\t3) delete table\n\t4) insert test data\n\t5) exist program (enter any other key)")
-        _continue_action = input("Select the action suggested above by enter a number(1, 2, 3, 4, 5): ")
+        print("Available actions :\n\t1) delete selected database\n\t2) execute sql file\n\t3) delete table\n\t4) insert csv test data\n\t5) create cvs from excel\n\t6) exist program (enter any other key)")
+        _continue_action = input("Select the action suggested above by enter a number(1, 2, 3, 4, 5, 6): ")
         if _continue_action == "1":
             self.delete_database(self.database_name)
         elif _continue_action == "2":
@@ -108,6 +109,8 @@ class Psycopg2Driver:
             self.delete_table()
         elif _continue_action == "4":
             self.load_data_from_csv_files_folder()
+        elif _continue_action == "5":
+            self.create_csv_from_workbook()
         else:
             print("Program exiting...")
     
@@ -217,6 +220,25 @@ class Psycopg2Driver:
                 print("The folder is empty.")
         else:
             print("The input path is not a folder.")                    
+        self.select_action_to_continue()
+
+    def create_csv_from_workbook(self):
+        workbook_path = input("Converting excel file to csv files\nEnter Excel file path: ")
+        # Read the Excel file into a Pandas DataFrame
+        xls = pandas.ExcelFile(workbook_path)
+
+        # Create a folder with workbook name
+        folder_name = os.path.splitext(workbook_path)[0]
+        os.makedirs(folder_name, exist_ok=True)
+
+        # Iterate through each sheet in the workbook
+        for sheet_name in xls.sheet_names:
+            # Read the sheet into a DataFrame
+            df = pandas.read_excel(xls, sheet_name)
+
+            # Create CSV file for each sheet
+            csv_filename = os.path.join(folder_name, f"{sheet_name}.csv")
+            df.to_csv(csv_filename, index=False)                
         self.select_action_to_continue()
     
     def delete_table(self):

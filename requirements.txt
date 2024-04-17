@@ -1,2 +1,3 @@
 psycopg2==2.9.9
 pwinput==1.0.3
+pandas==2.2.2
