@@ -99,8 +99,8 @@ class Psycopg2Driver:
             raise SystemExit(1)
         
     def select_action_to_continue(self):
-        print("Available actions :\n\t1) delete selected database\n\t2) execute sql file\n\t3) delete table\n\t4) insert csv test data\n\t5) create cvs from excel\n\t6) exist program (enter any other key)")
-        _continue_action = input("Select the action suggested above by enter a number(1, 2, 3, 4, 5, 6): ")
+        print("Available actions :\n\t1) delete selected database\n\t2) execute sql file\n\t3) delete table\n\t4) insert test data with csv files\n\t5) create cvs from excel\n\t6) insert test data with excel file\n\t7) exist program (enter any other key)")
+        _continue_action = input("Select the action suggested above by enter a number(1, 2, 3, 4, 5, 6, 7): ")
         if _continue_action == "1":
             self.delete_database(self.database_name)
         elif _continue_action == "2":
@@ -108,9 +108,11 @@ class Psycopg2Driver:
         elif _continue_action == "3":
             self.delete_table()
         elif _continue_action == "4":
-            self.load_data_from_csv_files_folder()
+            self.load_data_from_csv_files_folder_into_database()
         elif _continue_action == "5":
             self.create_csv_from_workbook()
+        elif _continue_action == "6":
+            self.load_data_from_excel_file_into_database()
         else:
             print("Program exiting...")
     
@@ -185,12 +187,12 @@ class Psycopg2Driver:
             print("Invalid Input: the file path not exist")
         self.select_action_to_continue()
     
-    def load_data_from_csv_files_folder(self):
+    def load_data_from_csv_files_folder_into_database(self):
         _csv_files_folder = input("Enter csv files folder path: ")
         if os.path.isdir(_csv_files_folder):
+            _temp_db_connection = self.connect()
+            _temp_db_connection.autocommit = True
             for each in os.listdir(_csv_files_folder):
-                _temp_db_connection = self.connect()
-                _temp_db_connection.autocommit = True
                 _rows_data = []
                 _column_names = []
                 if each[-4:] == ".csv":
@@ -210,12 +212,11 @@ class Psycopg2Driver:
                             # cur.execute(_sql_script)
                             for _row in _rows_data:
                                 cur.execute(_sql_script, _row)
-                        _temp_db_connection.close()
                         print("csv file data inserts successfully")
                     except Exception as e:
-                        _temp_db_connection.close()
                         print(f"Failed to execute {each}.")
-                        print(f"(f) load_data_from_csv_files_folder - An error occured: {e}")
+                        print(f"(f) load_data_from_csv_files_folder_into_database - An error occured: {e}")
+            _temp_db_connection.close()
             if len(os.listdir(_csv_files_folder)) == 0:
                 print("The folder is empty.")
         else:
@@ -239,6 +240,43 @@ class Psycopg2Driver:
             # Create CSV file for each sheet
             csv_filename = os.path.join(folder_name, f"{sheet_name}.csv")
             df.to_csv(csv_filename, index=False)                
+        self.select_action_to_continue()
+    
+    def load_data_from_excel_file_into_database(self):
+        workbook_path = input("Execl file data to load into database\nEnter Excel file path: ")
+        if os.path.isfile(workbook_path) and workbook_path.split['.'][-1] in ['xls','xlsx','xlsm','xlsb','odf','ods','odt']:
+            # Read the Excel file into a Pandas DataFrame
+            xls = pandas.ExcelFile(workbook_path)
+
+            _temp_db_connection = self.connect()
+            _temp_db_connection.autocommit = True
+            # Iterate through each sheet in the workbook
+            for sheet_name in xls.sheet_names:
+                # Read the sheet into a DataFrame
+                df = pandas.read_excel(xls, sheet_name)
+                
+                # Convert DataFrame to CSV-like data and append to the list
+                csv_data = df.to_csv(index=False, header=True).strip().split('\n')
+                print(f"({type(csv_data)}){csv_data}")
+                _table_name = sheet_name
+                _column_names_str = csv_data[0]
+                _placeholders_str = ','.join("%s" for each in _column_names_str.split(","))
+                _sql_script = f"""
+                        INSERT INTO {_table_name.lower()}({_column_names_str}) VALUES ({_placeholders_str})
+                    """
+                try:
+                    with _temp_db_connection.cursor() as cur:
+                        # cur.execute(_sql_script)
+                        for _row in csv_data[1:]:
+                            cur.execute(_sql_script, _row.split(','))
+                    print(f"excel file {sheet_name} sheet data inserts successfully")
+                except Exception as e:
+                    print(f"Failed to insert {sheet_name} sheet data.")
+                    print(f"(f) load_data_from_excel_file_into_database - An error occured: {e}")
+                
+            _temp_db_connection.close()
+        else:
+            print("The input path is invalid file path.")
         self.select_action_to_continue()
     
     def delete_table(self):
