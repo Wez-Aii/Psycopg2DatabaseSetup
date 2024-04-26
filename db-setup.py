@@ -244,7 +244,7 @@ class Psycopg2Driver:
     
     def load_data_from_excel_file_into_database(self):
         workbook_path = input("Execl file data to load into database\nEnter Excel file path: ")
-        if os.path.isfile(workbook_path) and workbook_path.split['.'][-1] in ['xls','xlsx','xlsm','xlsb','odf','ods','odt']:
+        if os.path.isfile(workbook_path) and workbook_path.split('.')[-1] in ['xls','xlsx','xlsm','xlsb','odf','ods','odt']:
             # Read the Excel file into a Pandas DataFrame
             xls = pandas.ExcelFile(workbook_path)
 
