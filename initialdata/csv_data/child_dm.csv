@@ -1,7 +1,7 @@
-parent_id,row_name,row_desc,flag
-1,child1,a description,false
-1,child2,a description,true
-2,child3,a description,false
-2,child4,a description,true
-3,child5,a description,false
-3,child6,a description,true
+parent_id,child_number_enum_id,row_name,row_desc,flag
+1,1,child1,a description,false
+1,2,child2,a description,true
+2,1,child3,a description,false
+2,2,child4,a description,true
+3,1,child5,a description,false
+3,2,child6,a description,true
