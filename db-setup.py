@@ -1,4 +1,5 @@
 import csv
+import re
 import psycopg2
 import argparse
 import getpass
@@ -11,6 +12,14 @@ POSTGRES_DB_ADDRESS = os.getenv("POSTGRES_DB_ADDRESS", "localhost")
 POSTGRES_DB_PORT = os.getenv("POSTGRES_DB_PORT", "5432")
 POSTGRES_DM_USERNAME = os.getenv("POSTGRES_DM_USERNAME")
 POSTGRES_DM_PASSWORD = os.getenv("POSTGRES_DM_PASSWORD")
+
+def str_to_int(str_input):
+    try:
+        _to_return = int(float(str_input))
+    except Exception as e:
+        _to_return = None
+    return _to_return
+
 
 class Psycopg2Driver:
     def __init__(self) -> None:
@@ -260,6 +269,7 @@ class Psycopg2Driver:
                 print(f"({type(csv_data)}){csv_data}")
                 _table_name = sheet_name
                 _column_names_str = csv_data[0]
+                _f_id_columns = list((True if re.search(".+_id$", each) else False) for each in _column_names_str.split(","))
                 _placeholders_str = ','.join("%s" for each in _column_names_str.split(","))
                 _sql_script = f"""
                         INSERT INTO {_table_name.lower()}({_column_names_str}) VALUES ({_placeholders_str})
@@ -268,7 +278,13 @@ class Psycopg2Driver:
                     with _temp_db_connection.cursor() as cur:
                         # cur.execute(_sql_script)
                         for _row in csv_data[1:]:
-                            cur.execute(_sql_script, _row.split(','))
+                            _cells_value = _row.split(',')
+                            if True in _f_id_columns:
+                                for i, v in enumerate(_f_id_columns):
+                                    if v:
+                                        _cells_value[i] = str_to_int(_cells_value[i])
+                                
+                            cur.execute(_sql_script, _cells_value)
                     print(f"excel file {sheet_name} sheet data inserts successfully")
                 except Exception as e:
                     print(f"Failed to insert {sheet_name} sheet data.")
